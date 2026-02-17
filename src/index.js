@@ -5,25 +5,35 @@ const scene = new THREE.Scene();
 
 const geometry = new THREE.IcosahedronGeometry();
 const geometry2 = new THREE.DodecahedronGeometry();
+const geometry3 = new THREE.OctahedronGeometry();
+const geometry4 = new THREE.IcosahedronGeometry(0);
+const geometry5 = new THREE.DodecahedronGeometry(0);
+
+const geometries = [geometry, geometry2, geometry3, geometry4, geometry5];
 const material = new THREE.MeshStandardMaterial({color : 0xFF5A5F});
 const material2 = new THREE.MeshStandardMaterial({color : 0x087E8B});
-// 1. DÉCLARER LE TABLEAU ICI
+
+const respawnZ = -250;
+const scaleMin = 0.1;
+const scaleMax = 4;
+const nomberOfCubes = 150;
+
+// 1. CRÉER UN TABLEAU POUR STOCKER LES CUBES
 const cubes = []; 
 
-for (let j = 0; j < 100; j++) {
+for (let j = 0; j < nomberOfCubes; j++) {
   
-const cube = new THREE.Mesh(Math.random() > 0.5 ? geometry : geometry2, Math.random() > 0.5 ? material : material2);
+const cube = new THREE.Mesh(geometries[Math.floor(Math.random() * geometries.length)], Math.random() > 0.5 ? material : material2);
 
-const randomVal = (Math.random() + Math.random() + Math.random() + Math.random()) / 4;
-const scale = randomVal * 4 + 0.1;
+const randomVal = (Math.random() + Math.random() + Math.random() + Math.random()) / 4; //Courbe de distribution normale centrée sur 0.5
 
-cube.scale.setScalar(scale);
+cube.scale.setScalar(randomVal * (scaleMax - scaleMin) + scaleMin);
 /*   cube.scale.setScalar(Math.random() * 2 + 0.5); */
-  cube.userData = { rotationSpeed: Math.random() * 0.02 + 0.01 , positionZSpeed: Math.random() * 1 + 0.5 };
+  cube.userData = { rotationSpeed: Math.random() * 0.01 + 0.01 , positionZSpeed: Math.random() * 0.4 + 0.5 };
   cube.position.set(
     Math.floor(Math.random() * 80) - 40,
     Math.floor(Math.random() * 80) - 40,
-    -250,
+    respawnZ,
   );
 
   cube.rotation.set(
@@ -64,7 +74,7 @@ const tick = () => {
     obj.rotation.y += obj.userData.rotationSpeed;
     obj.position.z += obj.userData.positionZSpeed;
     if (obj.position.z > 10) {
-      obj.position.z = -250;
+      obj.position.z = respawnZ;
     }
   });
 
