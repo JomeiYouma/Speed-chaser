@@ -12,11 +12,17 @@ const cubes = [];
 
 for (let j = 0; j < 100; j++) {
   
-  const cube = new THREE.Mesh(Math.random() > 0.5 ? geometry : geometry2, Math.random() > 0.5 ? material : material2);
-  cube.userData = { rotationSpeed: Math.random() * 0.01 + 0.01 , positionZSpeed: Math.random() * 0.5 + 0.5 };
+const cube = new THREE.Mesh(Math.random() > 0.5 ? geometry : geometry2, Math.random() > 0.5 ? material : material2);
+
+const randomVal = (Math.random() + Math.random() + Math.random() + Math.random()) / 4;
+const scale = randomVal * 4 + 0.1;
+
+cube.scale.setScalar(scale);
+/*   cube.scale.setScalar(Math.random() * 2 + 0.5); */
+  cube.userData = { rotationSpeed: Math.random() * 0.02 + 0.01 , positionZSpeed: Math.random() * 1 + 0.5 };
   cube.position.set(
-    Math.floor(Math.random() * 16) - 8,
-    Math.floor(Math.random() * 10) - 5,
+    Math.floor(Math.random() * 80) - 40,
+    Math.floor(Math.random() * 80) - 40,
     -250,
   );
 
@@ -55,6 +61,7 @@ const tick = () => {
   // .forEach est plus adapté que .map ici car on ne crée pas un nouveau tableau
   cubes.forEach(obj => {
     obj.rotation.x += obj.userData.rotationSpeed;
+    obj.rotation.y += obj.userData.rotationSpeed;
     obj.position.z += obj.userData.positionZSpeed;
     if (obj.position.z > 10) {
       obj.position.z = -250;
