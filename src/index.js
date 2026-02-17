@@ -1,7 +1,14 @@
 import * as THREE from 'three';
 
+const respawnZ = -250;
+const scaleMin = 0.1;
+const scaleMax = 4;
+const nomberOfCubes = 1050;
+
 // Scene
 const scene = new THREE.Scene();
+//Fog
+scene.fog = new THREE.Fog(0x000000, -respawnZ-30, -respawnZ);
 
 const geometry = new THREE.IcosahedronGeometry();
 const geometry2 = new THREE.DodecahedronGeometry();
@@ -13,10 +20,7 @@ const geometries = [geometry, geometry2, geometry3, geometry4, geometry5];
 const material = new THREE.MeshStandardMaterial({color : 0xFF5A5F});
 const material2 = new THREE.MeshStandardMaterial({color : 0x087E8B});
 
-const respawnZ = -250;
-const scaleMin = 0.1;
-const scaleMax = 4;
-const nomberOfCubes = 1050;
+
 
 // 1. CRÉER UN TABLEAU POUR STOCKER LES CUBES
 const cubes = []; 
@@ -59,6 +63,9 @@ const light2 = new THREE.DirectionalLight(0xffffff, 4);
 light.position.set(1, 1, 1);
 scene.add(light); 
 scene.add(light2);
+
+
+
 // Renderer
 const renderer = new THREE.WebGLRenderer();
 renderer.setSize(window.innerWidth, window.innerHeight);
