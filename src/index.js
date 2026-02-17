@@ -16,7 +16,7 @@ const material2 = new THREE.MeshStandardMaterial({color : 0x087E8B});
 const respawnZ = -250;
 const scaleMin = 0.1;
 const scaleMax = 4;
-const nomberOfCubes = 150;
+const nomberOfCubes = 1050;
 
 // 1. CRÉER UN TABLEAU POUR STOCKER LES CUBES
 const cubes = []; 
@@ -31,8 +31,8 @@ cube.scale.setScalar(randomVal * (scaleMax - scaleMin) + scaleMin);
 /*   cube.scale.setScalar(Math.random() * 2 + 0.5); */
   cube.userData = { rotationSpeed: Math.random() * 0.01 + 0.01 , positionZSpeed: Math.random() * 0.4 + 0.5 };
   cube.position.set(
-    Math.floor(Math.random() * 80) - 40,
-    Math.floor(Math.random() * 80) - 40,
+    Math.floor(Math.random() * window.innerWidth/10) - window.innerWidth/10 / 2,
+    Math.floor(Math.random() * window.innerHeight/10) - window.innerHeight/10 / 2,
     respawnZ,
   );
 
