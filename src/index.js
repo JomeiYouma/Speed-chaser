@@ -18,6 +18,25 @@ let elapsed = 0;
 const baseSpeed = 0.04;
 const acceleration = 0.0025;
 let playerColor = 'red';
+let lives = 5;
+let invincible = false;
+let invincibleUntil = 0;
+
+// Lives UI
+const livesContainer = document.createElement('div');
+livesContainer.id = 'lives';
+livesContainer.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:10;pointer-events:none;';
+document.body.appendChild(livesContainer);
+const lifeBars = [];
+for (let i = 0; i < 5; i++) {
+  const bar = document.createElement('div');
+  bar.style.cssText = 'width:30px;height:6px;background:white;border-radius:2px;transition:opacity 0.3s;';
+  livesContainer.appendChild(bar);
+  lifeBars.push(bar);
+}
+function updateLivesUI() {
+  lifeBars.forEach((bar, i) => { bar.style.opacity = i < lives ? '1' : '0.15'; });
+}
 
 // Scene
 const scene = new THREE.Scene();
@@ -59,7 +78,7 @@ scene.add(shipLight);
 //Init object double face
 const road = new THREE.Mesh(
   new THREE.PlaneGeometry(5, 35),
-  new THREE.MeshStandardMaterial({ color: 0xD0D0D0, side: THREE.DoubleSide, roughness: 0.8, metalness: 0.2 })
+  new THREE.MeshStandardMaterial({ color: 0xD0D0D0, side: THREE.FrontSide, roughness: 0.8, metalness: 0.2 })
 );
 road.rotation.x = -Math.PI * 0.5;
 road.receiveShadow = true;
@@ -74,10 +93,35 @@ spaceship.scale.set(0.1, 0.1, 0.1);
 spaceship.position.set(0, -0.03, 11.5);
 spaceship.castShadow = true;
 
+// Engine lights
+const engineLightL = new THREE.PointLight(0xff6633, 0.3, 2);
+engineLightL.position.set(-0.15, 0.05, 12.1);
+const engineLightR = new THREE.PointLight(0xff6633, 0.3, 2);
+engineLightR.position.set(0.15, 0.05, 12.1);
+scene.add(engineLightL);
+scene.add(engineLightR);
+
 
 scene.add(spaceship);
 
 scene.add(road);
+
+// Stars
+const starCount = 100;
+const starGeo = new THREE.SphereGeometry(0.04, 4, 4);
+const starMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 1.0 });
+const stars = [];
+const starDepth = 80;
+for (let i = 0; i < starCount; i++) {
+  const star = new THREE.Mesh(starGeo, starMat);
+  star.position.set(
+    (Math.random() - 0.5) * 40,
+    Math.random() * 5 + 0.5,
+    16 - Math.random() * starDepth
+  );
+  scene.add(star);
+  stars.push(star);
+}
 
 // Walls
 const lanes = [-1.5, 0, 1.5];
@@ -157,11 +201,18 @@ function resetGame() {
   startTime = performance.now();
   elapsed = 0;
   playerColor = 'red';
+  lives = 5;
+  invincible = false;
+  invincibleUntil = 0;
+  updateLivesUI();
   spaceship.material.color.set(0xE6AF2E);
   spaceship.material.emissive.set(0xB38A24);
   shipLight.color.set(0xE6AF2E);
+  engineLightL.color.set(0xff6633);
+  engineLightR.color.set(0xff6633);
   timerEl.textContent = '0.00';
   gameoverEl.style.display = 'none';
+  clearExplosion();
   spaceship.position.set(0, -0.03, 11.5);
 
   walls.forEach((row) => row.meshes.forEach((m) => scene.remove(m)));
@@ -209,11 +260,15 @@ function toggleColor() {
     spaceship.material.color.set(0x3D348B);
     spaceship.material.emissive.set(0x2A2460);
     shipLight.color.set(0x3D348B);
+    engineLightL.color.set(0xff3399);
+    engineLightR.color.set(0xff3399);
   } else {
     playerColor = 'red';
     spaceship.material.color.set(0xE6AF2E);
     spaceship.material.emissive.set(0xB38A24);
     shipLight.color.set(0xE6AF2E);
+    engineLightL.color.set(0xff6633);
+    engineLightR.color.set(0xff6633);
   }
 }
 
@@ -240,6 +295,46 @@ function checkCollision() {
   return false;
 }
 
+// Explosion
+const explosionParts = [];
+function explode() {
+  const pos = spaceship.position.clone();
+  const color = spaceship.material.color.clone();
+  for (let i = 0; i < 30; i++) {
+    const size = 0.03 + Math.random() * 0.08;
+    const geo = new THREE.TetrahedronGeometry(size);
+    const mat = new THREE.MeshStandardMaterial({
+      color: color,
+      emissive: color,
+      emissiveIntensity: 0.5,
+      transparent: true,
+      opacity: 1.0,
+    });
+    const part = new THREE.Mesh(geo, mat);
+    part.position.copy(pos);
+    part.userData.vel = new THREE.Vector3(
+      (Math.random() - 0.5) * 0.15,
+      Math.random() * 0.1,
+      (Math.random() - 0.5) * 0.15
+    );
+    scene.add(part);
+    explosionParts.push(part);
+  }
+  spaceship.visible = false;
+  shipLight.intensity = 0;
+  engineLightL.intensity = 0;
+  engineLightR.intensity = 0;
+}
+
+function clearExplosion() {
+  for (const p of explosionParts) scene.remove(p);
+  explosionParts.length = 0;
+  spaceship.visible = true;
+  shipLight.intensity = 2;
+  engineLightL.intensity = 0.3;
+  engineLightR.intensity = 0.3;
+}
+
 
 
 
@@ -249,7 +344,7 @@ const tick = () => {
     timerEl.textContent = elapsed.toFixed(2);
 
     const wallSpeed = baseSpeed + elapsed * acceleration;
-    wallSpacing = wallSpeed * 40 + 7;
+    wallSpacing = wallSpeed * 45 + 7;
 
     // Move walls toward the camera
     walls.forEach((row) => {
@@ -265,11 +360,52 @@ const tick = () => {
     shipLight.position.z = spaceship.position.z;
     shipLight.position.y = 0.5;
 
-    // Collision
-    if (checkCollision()) {
-      alive = false;
-      gameoverEl.style.display = 'block';
+    // Engine lights follow spaceship
+    engineLightL.position.set(spaceship.position.x - 0.15, 0.05, spaceship.position.z + 0.6);
+    engineLightR.position.set(spaceship.position.x + 0.15, 0.05, spaceship.position.z + 0.6);
+
+    // Move stars
+    for (const star of stars) {
+      star.position.z += wallSpeed;
+      if (star.position.z > 16) {
+        star.position.z = 16 - starDepth;
+        star.position.x = (Math.random() - 0.5) * 40;
+        star.position.y = Math.random() * 5 + 0.5;
+      }
     }
+
+    // Collision
+    if (checkCollision() && !invincible) {
+      lives--;
+      updateLivesUI();
+      explode();
+      if (lives <= 0) {
+        alive = false;
+        gameoverEl.style.display = 'block';
+      } else {
+        // Respawn with invincibility
+        invincible = true;
+        invincibleUntil = performance.now() + 2000;
+        clearExplosion();
+      }
+    }
+
+    // Invincibility blink
+    if (invincible) {
+      spaceship.visible = Math.floor(performance.now() / 100) % 2 === 0;
+      if (performance.now() > invincibleUntil) {
+        invincible = false;
+        spaceship.visible = true;
+      }
+    }
+  }
+
+  // Animate explosion particles
+  for (const p of explosionParts) {
+    p.position.add(p.userData.vel);
+    p.userData.vel.y -= 0.002;
+    p.material.opacity -= 0.008;
+    if (p.material.opacity < 0) p.material.opacity = 0;
   }
 
   renderer.render(scene, camera);
