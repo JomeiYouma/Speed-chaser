@@ -442,7 +442,7 @@ function saveHighscores() {
   localStorage.setItem('highscores', JSON.stringify(highscores));
 }
 function renderHighscores() {
-  highscoresEl.innerHTML = '<b>HIGHSCORES</b><br>' + highscores.slice(0, 5).map((s, i) => `${i+1}. <span style="color:#E6AF2E">${escapeHtml(s.name)}</span> <span style="float:right">${s.score.toFixed(2)}</span>`).join('<br>');
+  highscoresEl.innerHTML = '<b>HIGHSCORES</b><br>' + highscores.slice(0, 10).map((s, i) => `${i+1}. <span style="color:#E6AF2E">${escapeHtml(s.name)}</span> <span style="float:right">${s.score.toFixed(2)}</span>`).join('<br>');
 }
 loadHighscores();
 renderHighscores();
@@ -454,7 +454,7 @@ onValue(highscoresRef, (snapshot) => {
   if (data) {
     highscores = Object.values(data);
     highscores.sort((a, b) => b.score - a.score);
-    highscores = highscores.slice(0, 5);
+    highscores = highscores.slice(0, 10);
     saveHighscores(); // Backup en local
     renderHighscores();
   }
@@ -464,12 +464,12 @@ let currentScore = 0;
 
 // Highscore logic
 function updateHighscore() {
-  let best = highscores.length < 5 || (highscores.length > 0 && currentScore > highscores[highscores.length - 1].score);
+  let best = highscores.length < 10 || (highscores.length > 0 && currentScore > highscores[highscores.length - 1].score);
   if (best) {
     setTimeout(() => {
       let name = '';
       while (!/^[A-Z]{1,8}$/.test(name)) {
-        name = prompt('NOUVEAU HIGHSCORE !\nEntre ton pseudo (8 lettres max A-Z) :', 'AAA');
+        name = prompt('NOUVEAU HIGHSCORE (Top 10) !\nEntre ton pseudo (8 lettres max A-Z) :', 'AAA');
         if (!name) name = 'AAA';
         name = name.slice(0, 8).toUpperCase();
       }
@@ -478,25 +478,32 @@ function updateHighscore() {
       const playerRef = ref(db, 'highscores/' + name);
       get(playerRef).then((snapshot) => {
         const existing = snapshot.val();
-        if (!existing || currentScore > existing.score) {
-          set(playerRef, { name, score: currentScore })
-            .then(fallbackSave) // Force local UI update on success
-            .catch(fallbackSave);
-        } else {
-          fallbackSave(); // Update UI even if score not beaten just to be safe
+        if (existing && currentScore <= existing.score) {
+          alert(`Dommage, le pseudo ${name} possède déjà un meilleur record (${existing.score.toFixed(2)}s) !`);
+          return;
         }
+        
+        set(playerRef, { name, score: currentScore })
+          .then(fallbackSave) // Force local UI update on success
+          .catch(fallbackSave);
       }).catch(fallbackSave);
 
-      // 2) Fallback local si Firebase échoue / bloqué
+      // 2) Fallback local
       function fallbackSave() {
         const existing = highscores.find(s => s.name === name);
+        if (existing && currentScore <= existing.score) {
+          // Au cas où Firebase a planté et qu'on a juste la DB locale
+          if (snapshot === undefined) alert(`Dommage, le pseudo ${name} possède déjà un meilleur record (${existing.score.toFixed(2)}s) !`);
+          return;
+        }
+
         if (existing) {
-          if (currentScore > existing.score) existing.score = currentScore;
+          existing.score = currentScore;
         } else {
           highscores.push({ name, score: currentScore });
         }
         highscores.sort((a, b) => b.score - a.score);
-        highscores = highscores.slice(0, 5);
+        highscores = highscores.slice(0, 10);
         saveHighscores();
         renderHighscores();
       }
@@ -505,7 +512,7 @@ function updateHighscore() {
 }
 
 function isHighscore(score) {
-  if (highscores.length < 5) return true;
+  if (highscores.length < 10) return true;
   return highscores.some(s => score > s.score);
 }
 
