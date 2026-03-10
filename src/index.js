@@ -1,5 +1,10 @@
 import * as THREE from 'three';
 
+// Utility: escape HTML to prevent XSS
+function escapeHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
 // UI
 const timerEl = document.createElement('div');
 timerEl.id = 'timer';
@@ -13,6 +18,7 @@ document.body.appendChild(gameoverEl);
 
 // Game state
 let alive = true;
+let paused = false;
 let startTime = performance.now();
 let elapsed = 0;
 const baseSpeed = 0.04;
@@ -54,6 +60,13 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.appendChild(renderer.domElement);
+
+// Resize handler
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
 
 // Lights
 const ambientLight = new THREE.AmbientLight(0x222233, 0.5);
@@ -224,6 +237,32 @@ function resetGame() {
 
 //Controls
 window.addEventListener('keydown', (event) => {
+  // Sound toggle (S)
+  if (event.key === 's' || event.key === 'S') {
+    soundOn = !soundOn;
+    if (soundOn) {
+      music.play().catch(() => {});
+      soundBtn.textContent = 'sound on';
+    } else {
+      music.pause();
+      soundBtn.textContent = 'sound off';
+    }
+    return;
+  }
+
+  // Pause toggle (P)
+  if (event.key === 'p' || event.key === 'P') {
+    if (alive) {
+      paused = !paused;
+      if (paused) {
+        startTime -= (performance.now() - (startTime + elapsed * 1000)); // freeze elapsed
+      } else {
+        startTime = performance.now() - elapsed * 1000; // resync
+      }
+    }
+    return;
+  }
+
   if (event.key === ' ' && !alive) {
     resetGame();
     return;
@@ -335,16 +374,82 @@ function clearExplosion() {
   engineLightR.intensity = 0.3;
 }
 
+// Music
+const music = new Audio('/rip-to-mozart.mp3');
+music.loop = true;
+music.volume = 0.5;
 
+// Highscore UI
+const soundBtn = document.createElement('button');
+soundBtn.textContent = 'sound off';
+soundBtn.style.cssText = 'position:fixed;top:16px;left:16px;opacity:0.5;background:#222233;color:white;border:none;padding:8px 18px;border-radius:8px;font-family:monospace;font-size:18px;z-index:20;cursor:pointer;';
+document.body.appendChild(soundBtn);
+let soundOn = false;
+soundBtn.onclick = () => {
+  soundOn = !soundOn;
+  if (soundOn) {
+    music.play().catch(() => {});
+    soundBtn.textContent = 'sound on';
+  } else {
+    music.pause();
+    soundBtn.textContent = 'sound off';
+  }
+};
 
+const highscoresEl = document.createElement('div');
+highscoresEl.id = 'highscores';
+highscoresEl.style.cssText = 'position:fixed;top:56px;left:16px;opacity:0.5;background:#222233;color:white;padding:8px 18px;border-radius:8px;font-family:monospace;font-size:18px;z-index:20;pointer-events:none;max-width:220px;text-align:left;letter-spacing:2px;';
+document.body.appendChild(highscoresEl);
+let highscores = [];
+function loadHighscores() {
+  try {
+    highscores = JSON.parse(localStorage.getItem('highscores') || '[]');
+  } catch (e) { highscores = []; }
+}
+function saveHighscores() {
+  localStorage.setItem('highscores', JSON.stringify(highscores));
+}
+function renderHighscores() {
+  highscoresEl.innerHTML = '<b>HIGHSCORES</b><br>' + highscores.slice(0, 5).map((s, i) => `${i+1}. <span style="color:#E6AF2E">${escapeHtml(s.name)}</span> <span style="float:right">${s.score.toFixed(2)}</span>`).join('<br>');
+}
+loadHighscores();
+renderHighscores();
+let currentScore = 0;
+
+// Highscore logic
+function updateHighscore() {
+  let best = highscores.length < 5 || (highscores.length > 0 && currentScore > highscores[highscores.length - 1].score);
+  if (best) {
+    setTimeout(() => {
+      let name = '';
+      while (!/^[A-Z]{1,8}$/.test(name)) {
+        name = prompt('NOUVEAU HIGHSCORE !\nEntre ton pseudo (8 lettres max A-Z) :', 'AAA');
+        if (!name) name = 'AAA';
+        name = name.slice(0, 8).toUpperCase();
+      }
+      highscores.push({ name, score: currentScore });
+      highscores.sort((a, b) => b.score - a.score);
+      highscores = highscores.slice(0, 5);
+      saveHighscores();
+      renderHighscores();
+    }, 500);
+  }
+  renderHighscores();
+}
+
+function isHighscore(score) {
+  if (highscores.length < 5) return true;
+  return highscores.some(s => score > s.score);
+}
 
 const tick = () => {
-  if (alive) {
+  if (alive && !paused) {
     elapsed = (performance.now() - startTime) / 1000;
     timerEl.textContent = elapsed.toFixed(2);
 
     const wallSpeed = baseSpeed + elapsed * acceleration;
-    wallSpacing = wallSpeed * 45 + 7;
+    const spacingElapsed = Math.min(elapsed, 135);
+    wallSpacing = (baseSpeed + spacingElapsed * acceleration) * 45 + 7;
 
     // Move walls toward the camera
     walls.forEach((row) => {
@@ -380,8 +485,10 @@ const tick = () => {
       updateLivesUI();
       explode();
       if (lives <= 0) {
+        currentScore = elapsed;
         alive = false;
         gameoverEl.style.display = 'block';
+        updateHighscore();
       } else {
         // Respawn with invincibility
         invincible = true;
