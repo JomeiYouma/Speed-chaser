@@ -247,6 +247,7 @@ function resetGame() {
   clearExplosion();
   spaceship.position.set(0, -0.03, 11.5);
 
+  wallSpacing = 7; // Reset the spacing before creating initial walls
   walls.forEach((row) => row.meshes.forEach((m) => scene.remove(m)));
   walls.length = 0;
   for (let i = 0; i < wallCount; i++) {
@@ -509,14 +510,15 @@ const tick = () => {
   requestAnimationFrame(tick);
 
   const now = performance.now();
-  if (now - lastFrameTime < 1000 / 60) return; // Cap at 60 FPS
+  const dt = Math.min(now - lastFrameTime, 100); // 100ms max to prevent tunneling after freeze
   lastFrameTime = now;
+  const dtMultiplier = dt / (1000 / 60);
 
   if (alive && !paused) {
     elapsed = (performance.now() - startTime) / 1000;
     timerEl.textContent = elapsed.toFixed(2);
 
-    const wallSpeed = baseSpeed + elapsed * acceleration;
+    const wallSpeed = (baseSpeed + elapsed * acceleration) * dtMultiplier;
     const spacingElapsed = Math.min(elapsed, 115);
     wallSpacing = (baseSpeed + spacingElapsed * acceleration) * 45 + 7;
 
@@ -578,9 +580,11 @@ const tick = () => {
 
   // Animate explosion particles
   for (const p of explosionParts) {
-    p.position.add(p.userData.vel);
-    p.userData.vel.y -= 0.002;
-    p.material.opacity -= 0.008;
+    p.position.x += p.userData.vel.x * dtMultiplier;
+    p.position.y += p.userData.vel.y * dtMultiplier;
+    p.position.z += p.userData.vel.z * dtMultiplier;
+    p.userData.vel.y -= 0.002 * dtMultiplier;
+    p.material.opacity -= 0.008 * dtMultiplier;
     if (p.material.opacity < 0) p.material.opacity = 0;
   }
 
