@@ -28,7 +28,7 @@ let isPromptActive = false;
 let promptCallback = null;
 
 const promptContainer = document.createElement('div');
-promptContainer.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%, -50%);background:#222233;border:4px solid #E6AF2E;color:white;padding:30px;border-radius:12px;font-family:monospace;text-align:center;z-index:100;display:none;flex-direction:column;gap:20px;box-shadow: 0 10px 30px rgba(0,0,0,0.8);';
+promptContainer.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%, -50%);background:#222233;border:2px solid #555566;color:white;padding:30px;border-radius:12px;font-family:monospace;text-align:center;z-index:100;display:none;flex-direction:column;gap:20px;box-shadow: 0 10px 30px rgba(0,0,0,0.8);';
 
 const promptTitle = document.createElement('div');
 promptTitle.innerHTML = '<span style="color:#E6AF2E;font-size:28px;font-weight:bold;text-shadow: 2px 2px #000;">NEW HIGHSCORE!</span><br><br><span style="font-size:16px;">Enter your name (max 8 A-Z)</span>';
@@ -37,7 +37,7 @@ promptContainer.appendChild(promptTitle);
 const promptInput = document.createElement('input');
 promptInput.type = 'text';
 promptInput.maxLength = 8;
-promptInput.style.cssText = 'background:#11111a;color:#E6AF2E;border:2px solid #E6AF2E;padding:12px;font-family:monospace;font-size:24px;text-align:center;text-transform:uppercase;outline:none;border-radius:6px;width:200px;align-self:center;box-shadow: inset 0 0 10px rgba(0,0,0,0.5);';
+promptInput.style.cssText = 'background:#11111a;color:#E6AF2E;border:1px solid #555566;padding:12px;font-family:monospace;font-size:24px;text-align:center;text-transform:uppercase;outline:none;border-radius:6px;width:200px;align-self:center;box-shadow: inset 0 0 10px rgba(0,0,0,0.5);';
 promptContainer.appendChild(promptInput);
 
 const promptBtn = document.createElement('button');
