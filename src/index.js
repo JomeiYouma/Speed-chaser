@@ -211,6 +211,7 @@ function respawnRow(row) {
 // Reset game
 function resetGame() {
   alive = true;
+  paused = false;
   startTime = performance.now();
   elapsed = 0;
   playerColor = 'red';
@@ -254,10 +255,8 @@ window.addEventListener('keydown', (event) => {
   if (event.key === 'p' || event.key === 'P') {
     if (alive) {
       paused = !paused;
-      if (paused) {
-        startTime -= (performance.now() - (startTime + elapsed * 1000)); // freeze elapsed
-      } else {
-        startTime = performance.now() - elapsed * 1000; // resync
+      if (!paused) {
+        startTime = performance.now() - elapsed * 1000; // resync après pause
       }
     }
     return;
@@ -520,3 +519,15 @@ const tick = () => {
 };
 
 tick();
+
+// Page Visibility API : figer le timer quand l'onglet est caché
+let hiddenAt = 0;
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    hiddenAt = performance.now();
+  } else if (hiddenAt > 0 && alive && !paused) {
+    // Décaler startTime pour annuler le temps passé en arrière-plan
+    startTime += performance.now() - hiddenAt;
+    hiddenAt = 0;
+  }
+});
