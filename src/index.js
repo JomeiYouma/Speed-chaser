@@ -16,7 +16,7 @@ let alive = true;
 let startTime = performance.now();
 let elapsed = 0;
 const baseSpeed = 0.04;
-const acceleration = 0.005;
+const acceleration = 0.0025;
 let playerColor = 'red';
 
 // Scene
@@ -31,23 +31,47 @@ camera.position.set(0, 1, 14.5);
 // Renderer
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.appendChild(renderer.domElement);
+
+// Lights
+const ambientLight = new THREE.AmbientLight(0x222233, 0.5);
+scene.add(ambientLight);
+
+const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+dirLight.position.set(3, 8, 10);
+dirLight.castShadow = true;
+dirLight.shadow.mapSize.set(1024, 1024);
+dirLight.shadow.camera.near = 0.5;
+dirLight.shadow.camera.far = 50;
+dirLight.shadow.camera.left = -10;
+dirLight.shadow.camera.right = 10;
+dirLight.shadow.camera.top = 10;
+dirLight.shadow.camera.bottom = -30;
+scene.add(dirLight);
+
+const shipLight = new THREE.PointLight(0xff5555, 2, 8);
+shipLight.position.set(0, 0.5, 0);
+scene.add(shipLight);
 
 //Init object double face
 const road = new THREE.Mesh(
   new THREE.PlaneGeometry(5, 35),
-  new THREE.MeshBasicMaterial({ color: 0xaaaaaa, side: THREE.DoubleSide })
+  new THREE.MeshStandardMaterial({ color: 0x888888, side: THREE.DoubleSide, roughness: 0.8, metalness: 0.2 })
 );
 road.rotation.x = -Math.PI * 0.5;
+road.receiveShadow = true;
 
 //Init spaceship
 const spaceship = new THREE.Mesh(
   new THREE.ConeGeometry(3, 10, 5),
-  new THREE.MeshBasicMaterial({ color: 0xff5555 })
+  new THREE.MeshStandardMaterial({ color: 0xff5555, metalness: 0.6, roughness: 0.3, emissive: 0xff2222, emissiveIntensity: 0.3 })
 );
 spaceship.rotation.x = -Math.PI * 0.5;
 spaceship.scale.set(0.1, 0.1, 0.1);
 spaceship.position.set(0, -0.03, 11.5);
+spaceship.castShadow = true;
 
 
 scene.add(spaceship);
@@ -58,11 +82,11 @@ scene.add(road);
 const lanes = [-1.5, 0, 1.5];
 const laneWidth = 5 / 3;
 const wallGeo = new THREE.BoxGeometry(laneWidth, 0.5, 0.3);
-const redMat = new THREE.MeshBasicMaterial({ color: 0xff5555 });
-const blueMat = new THREE.MeshBasicMaterial({ color: 0x5555ff });
-const whiteMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+const redMat = new THREE.MeshStandardMaterial({ color: 0xff5555, metalness: 0.4, roughness: 0.4, emissive: 0xff0000, emissiveIntensity: 0.4 });
+const blueMat = new THREE.MeshStandardMaterial({ color: 0x5555ff, metalness: 0.4, roughness: 0.4, emissive: 0x0000ff, emissiveIntensity: 0.4 });
+const whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.5, roughness: 0.3, emissive: 0xffffff, emissiveIntensity: 0.2 });
 const walls = [];
-const wallSpacing = 8;
+let wallSpacing = 7;
 const wallCount = 5;
 
 function createWallRow(z) {
@@ -102,6 +126,8 @@ function createWallRow(z) {
     const wall = new THREE.Mesh(wallGeo, mat);
     wall.position.set(lanes[i], 0.25, z);
     wall.userData.color = color;
+    wall.castShadow = true;
+    wall.receiveShadow = true;
     scene.add(wall);
     meshes.push(wall);
   }
@@ -131,6 +157,8 @@ function resetGame() {
   elapsed = 0;
   playerColor = 'red';
   spaceship.material.color.set(0xff5555);
+  spaceship.material.emissive.set(0xff2222);
+  shipLight.color.set(0xff5555);
   timerEl.textContent = '0.00';
   gameoverEl.style.display = 'none';
   spaceship.position.set(0, -0.03, 11.5);
@@ -178,9 +206,13 @@ function toggleColor() {
   if (playerColor === 'red') {
     playerColor = 'blue';
     spaceship.material.color.set(0x5555ff);
+    spaceship.material.emissive.set(0x2222ff);
+    shipLight.color.set(0x5555ff);
   } else {
     playerColor = 'red';
     spaceship.material.color.set(0xff5555);
+    spaceship.material.emissive.set(0xff2222);
+    shipLight.color.set(0xff5555);
   }
 }
 
@@ -216,6 +248,7 @@ const tick = () => {
     timerEl.textContent = elapsed.toFixed(2);
 
     const wallSpeed = baseSpeed + elapsed * acceleration;
+    wallSpacing = wallSpeed * 40 + 7;
 
     // Move walls toward the camera
     walls.forEach((row) => {
@@ -225,6 +258,11 @@ const tick = () => {
         respawnRow(row);
       }
     });
+
+    // Smooth ship light follow
+    shipLight.position.x += (spaceship.position.x - shipLight.position.x) * 0.15;
+    shipLight.position.z = spaceship.position.z;
+    shipLight.position.y = 0.5;
 
     // Collision
     if (checkCollision()) {
