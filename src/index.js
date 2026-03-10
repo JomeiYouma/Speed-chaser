@@ -20,8 +20,56 @@ document.body.appendChild(timerEl);
 
 const gameoverEl = document.createElement('div');
 gameoverEl.id = 'gameover';
-gameoverEl.innerHTML = 'GAME OVER<br><span style="font-size:18px">Appuie sur ESPACE pour relancer</span>';
+gameoverEl.innerHTML = 'GAME OVER<br><span style="font-size:18px">Press SPACE to restart</span>';
 document.body.appendChild(gameoverEl);
+
+// Custom Prompt UI
+let isPromptActive = false;
+let promptCallback = null;
+
+const promptContainer = document.createElement('div');
+promptContainer.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%, -50%);background:#222233;border:4px solid #E6AF2E;color:white;padding:30px;border-radius:12px;font-family:monospace;text-align:center;z-index:100;display:none;flex-direction:column;gap:20px;box-shadow: 0 10px 30px rgba(0,0,0,0.8);';
+
+const promptTitle = document.createElement('div');
+promptTitle.innerHTML = '<span style="color:#E6AF2E;font-size:28px;font-weight:bold;text-shadow: 2px 2px #000;">NEW HIGHSCORE!</span><br><br><span style="font-size:16px;">Enter your name (max 8 A-Z)</span>';
+promptContainer.appendChild(promptTitle);
+
+const promptInput = document.createElement('input');
+promptInput.type = 'text';
+promptInput.maxLength = 8;
+promptInput.style.cssText = 'background:#11111a;color:#E6AF2E;border:2px solid #E6AF2E;padding:12px;font-family:monospace;font-size:24px;text-align:center;text-transform:uppercase;outline:none;border-radius:6px;width:200px;align-self:center;box-shadow: inset 0 0 10px rgba(0,0,0,0.5);';
+promptContainer.appendChild(promptInput);
+
+const promptBtn = document.createElement('button');
+promptBtn.textContent = 'SUBMIT';
+promptBtn.style.cssText = 'background:#E6AF2E;color:#222233;border:none;padding:12px 24px;font-family:monospace;font-size:20px;font-weight:bold;cursor:pointer;border-radius:6px;transition:0.2s;align-self:center;';
+promptBtn.onmouseover = () => promptBtn.style.background = '#ffd050';
+promptBtn.onmouseout = () => promptBtn.style.background = '#E6AF2E';
+promptContainer.appendChild(promptBtn);
+document.body.appendChild(promptContainer);
+
+function submitPrompt() {
+  if (!isPromptActive) return;
+  let name = promptInput.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 8);
+  if (name.length === 0) name = 'AAA';
+  
+  isPromptActive = false;
+  promptContainer.style.display = 'none';
+  if (promptCallback) promptCallback(name);
+}
+
+promptBtn.onclick = submitPrompt;
+promptInput.onkeydown = (e) => {
+  if (e.key === 'Enter') submitPrompt();
+};
+
+function showHighscorePrompt(cb) {
+  isPromptActive = true;
+  promptCallback = cb;
+  promptContainer.style.display = 'flex';
+  promptInput.value = '';
+  setTimeout(() => promptInput.focus(), 10);
+}
 
 const controlsEl = document.createElement('div');
 controlsEl.style.cssText = 'position:fixed;top:16px;right:16px;opacity:0.5;background:#222233;color:white;padding:8px 18px;border-radius:8px;font-family:monospace;font-size:13px;z-index:20;pointer-events:none;text-align:left;line-height:1.7;';
@@ -257,6 +305,8 @@ function resetGame() {
 
 //Controls
 window.addEventListener('keydown', (event) => {
+  if (isPromptActive) return;
+
   // Sound toggle (S)
   if (event.key === 's' || event.key === 'S') {
     soundOn = !soundOn;
@@ -467,46 +517,40 @@ function updateHighscore() {
   let best = highscores.length < 10 || (highscores.length > 0 && currentScore > highscores[highscores.length - 1].score);
   if (best) {
     setTimeout(() => {
-      let name = '';
-      while (!/^[A-Z]{1,8}$/.test(name)) {
-        name = prompt('NOUVEAU HIGHSCORE (Top 10) !\nEntre ton pseudo (8 lettres max A-Z) :', 'AAA');
-        if (!name) name = 'AAA';
-        name = name.slice(0, 8).toUpperCase();
-      }
+      showHighscorePrompt((name) => {
+        // 1) On essaie de sauvegarder sur Firebase
+        const playerRef = ref(db, 'highscores/' + name);
+        get(playerRef).then((snapshot) => {
+          const existing = snapshot.val();
+          if (existing && currentScore <= existing.score) {
+            alert(`Too bad, the username ${name} already has a better record (${existing.score.toFixed(2)}s)!`);
+            return;
+          }
+          
+          set(playerRef, { name, score: currentScore })
+            .then(() => fallbackSave(false)) // Force local UI update on success
+            .catch(() => fallbackSave(true));
+        }).catch(() => fallbackSave(true));
 
-      // 1) On essaie de sauvegarder sur Firebase
-      const playerRef = ref(db, 'highscores/' + name);
-      get(playerRef).then((snapshot) => {
-        const existing = snapshot.val();
-        if (existing && currentScore <= existing.score) {
-          alert(`Dommage, le pseudo ${name} possède déjà un meilleur record (${existing.score.toFixed(2)}s) !`);
-          return;
-        }
-        
-        set(playerRef, { name, score: currentScore })
-          .then(fallbackSave) // Force local UI update on success
-          .catch(fallbackSave);
-      }).catch(fallbackSave);
+        // 2) Fallback local
+        function fallbackSave(isError) {
+          const existing = highscores.find(s => s.name === name);
+          if (existing && currentScore <= existing.score) {
+            if (isError) alert(`Too bad, the username ${name} already has a better record (${existing.score.toFixed(2)}s)!`);
+            return;
+          }
 
-      // 2) Fallback local
-      function fallbackSave() {
-        const existing = highscores.find(s => s.name === name);
-        if (existing && currentScore <= existing.score) {
-          // Au cas où Firebase a planté et qu'on a juste la DB locale
-          if (snapshot === undefined) alert(`Dommage, le pseudo ${name} possède déjà un meilleur record (${existing.score.toFixed(2)}s) !`);
-          return;
+          if (existing) {
+            existing.score = currentScore;
+          } else {
+            highscores.push({ name, score: currentScore });
+          }
+          highscores.sort((a, b) => b.score - a.score);
+          highscores = highscores.slice(0, 10);
+          saveHighscores();
+          renderHighscores();
         }
-
-        if (existing) {
-          existing.score = currentScore;
-        } else {
-          highscores.push({ name, score: currentScore });
-        }
-        highscores.sort((a, b) => b.score - a.score);
-        highscores = highscores.slice(0, 10);
-        saveHighscores();
-        renderHighscores();
-      }
+      });
     }, 500);
   }
 }
