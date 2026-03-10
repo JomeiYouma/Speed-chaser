@@ -479,7 +479,11 @@ function updateHighscore() {
       get(playerRef).then((snapshot) => {
         const existing = snapshot.val();
         if (!existing || currentScore > existing.score) {
-          set(playerRef, { name, score: currentScore }).catch(fallbackSave);
+          set(playerRef, { name, score: currentScore })
+            .then(fallbackSave) // Force local UI update on success
+            .catch(fallbackSave);
+        } else {
+          fallbackSave(); // Update UI even if score not beaten just to be safe
         }
       }).catch(fallbackSave);
 
