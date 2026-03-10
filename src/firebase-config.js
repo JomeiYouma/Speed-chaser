@@ -3,11 +3,12 @@
 // console.firebase.google.com → Projet → Web App → SDK setup
 // ============================================================
 export const firebaseConfig = {
-  apiKey: "COLLE-TON-API-KEY-ICI",
-  authDomain: "ton-projet.firebaseapp.com",
-  databaseURL: "https://ton-projet-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "ton-projet",
-  storageBucket: "ton-projet.appspot.com",
-  messagingSenderId: "000000000000",
-  appId: "1:000000000000:web:0000000000000000"
+  apiKey: "AIzaSyDbCSLVRBxCeODsoI-JBpJeVuBiEJ5LUI",
+  authDomain: "speedsplitter-c5e0c.firebaseapp.com",
+  databaseURL: "https://speedsplitter-c5e0c-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "speedsplitter-c5e0c",
+  storageBucket: "speedsplitter-c5e0c.firebasestorage.app",
+  messagingSenderId: "226710198026",
+  appId: "1:226710198026:web:5ad14316c36f71d13e4cf3",
+  measurementId: "G-WCX210E24T"
 };
