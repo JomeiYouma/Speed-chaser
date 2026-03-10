@@ -451,7 +451,13 @@ function updateHighscore() {
         if (!name) name = 'AAA';
         name = name.slice(0, 8).toUpperCase();
       }
-      highscores.push({ name, score: currentScore });
+      const existing = highscores.find(s => s.name === name);
+      if (existing) {
+        // Mettre à jour le score si c'est un meilleur score
+        if (currentScore > existing.score) existing.score = currentScore;
+      } else {
+        highscores.push({ name, score: currentScore });
+      }
       highscores.sort((a, b) => b.score - a.score);
       highscores = highscores.slice(0, 5);
       saveHighscores();
