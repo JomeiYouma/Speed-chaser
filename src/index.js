@@ -16,6 +16,17 @@ gameoverEl.id = 'gameover';
 gameoverEl.innerHTML = 'GAME OVER<br><span style="font-size:18px">Appuie sur ESPACE pour relancer</span>';
 document.body.appendChild(gameoverEl);
 
+const controlsEl = document.createElement('div');
+controlsEl.style.cssText = 'position:fixed;top:16px;right:16px;opacity:0.5;background:#222233;color:white;padding:8px 18px;border-radius:8px;font-family:monospace;font-size:13px;z-index:20;pointer-events:none;text-align:left;line-height:1.7;';
+controlsEl.innerHTML = `<b>CONTROLS</b><br>
+<table style="border-collapse:collapse;margin-top:4px;">
+  <tr><td style="padding-right:16px;color:#E6AF2E;">← / Q · → / D</td><td>move</td></tr>
+  <tr><td style="padding-right:16px;color:#E6AF2E;">SPACE</td><td>color</td></tr>
+  <tr><td style="padding-right:16px;color:#E6AF2E;">P</td><td>pause</td></tr>
+  <tr><td style="padding-right:16px;color:#E6AF2E;">S</td><td>sound</td></tr>
+</table>`;
+document.body.appendChild(controlsEl);
+
 // Game state
 let alive = true;
 let paused = false;
@@ -248,6 +259,7 @@ window.addEventListener('keydown', (event) => {
       music.pause();
       soundBtn.textContent = 'sound off';
     }
+    showSoundHint();
     return;
   }
 
@@ -383,6 +395,18 @@ const soundBtn = document.createElement('button');
 soundBtn.textContent = 'sound off';
 soundBtn.style.cssText = 'position:fixed;top:16px;left:16px;opacity:0.5;background:#222233;color:white;border:none;padding:8px 18px;border-radius:8px;font-family:monospace;font-size:18px;z-index:20;cursor:pointer;';
 document.body.appendChild(soundBtn);
+
+const soundHintEl = document.createElement('span');
+soundHintEl.textContent = 'changes next game';
+soundHintEl.style.cssText = 'position:fixed;top:22px;left:calc(16px + 160px);opacity:0;color:#aaa;font-family:monospace;font-size:12px;z-index:20;pointer-events:none;transition:opacity 0.3s;';
+document.body.appendChild(soundHintEl);
+let soundHintTimer = null;
+function showSoundHint() {
+  soundHintEl.style.opacity = '1';
+  clearTimeout(soundHintTimer);
+  soundHintTimer = setTimeout(() => { soundHintEl.style.opacity = '0'; }, 2500);
+}
+
 let soundOn = false;
 soundBtn.onclick = () => {
   soundOn = !soundOn;
@@ -393,6 +417,7 @@ soundBtn.onclick = () => {
     music.pause();
     soundBtn.textContent = 'sound off';
   }
+  showSoundHint();
 };
 
 const highscoresEl = document.createElement('div');
@@ -447,7 +472,7 @@ const tick = () => {
     timerEl.textContent = elapsed.toFixed(2);
 
     const wallSpeed = baseSpeed + elapsed * acceleration;
-    const spacingElapsed = Math.min(elapsed, 135);
+    const spacingElapsed = Math.min(elapsed, 115);
     wallSpacing = (baseSpeed + spacingElapsed * acceleration) * 45 + 7;
 
     // Move walls toward the camera
