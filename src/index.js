@@ -21,7 +21,8 @@ let playerColor = 'red';
 
 // Scene
 const scene = new THREE.Scene();
-scene.fog = new THREE.Fog(0x000000, 0.1, 35);
+scene.background = new THREE.Color(0x222233);
+scene.fog = new THREE.Fog(0x222233, 15, 40);
 
 // Camera
 const aspect = window.innerWidth / window.innerHeight;
@@ -51,14 +52,14 @@ dirLight.shadow.camera.top = 10;
 dirLight.shadow.camera.bottom = -30;
 scene.add(dirLight);
 
-const shipLight = new THREE.PointLight(0xff5555, 2, 8);
+const shipLight = new THREE.PointLight(0xE6AF2E, 2, 8);
 shipLight.position.set(0, 0.5, 0);
 scene.add(shipLight);
 
 //Init object double face
 const road = new THREE.Mesh(
   new THREE.PlaneGeometry(5, 35),
-  new THREE.MeshStandardMaterial({ color: 0x888888, side: THREE.DoubleSide, roughness: 0.8, metalness: 0.2 })
+  new THREE.MeshStandardMaterial({ color: 0xD0D0D0, side: THREE.DoubleSide, roughness: 0.8, metalness: 0.2 })
 );
 road.rotation.x = -Math.PI * 0.5;
 road.receiveShadow = true;
@@ -66,7 +67,7 @@ road.receiveShadow = true;
 //Init spaceship
 const spaceship = new THREE.Mesh(
   new THREE.ConeGeometry(3, 10, 5),
-  new THREE.MeshStandardMaterial({ color: 0xff5555, metalness: 0.6, roughness: 0.3, emissive: 0xff2222, emissiveIntensity: 0.3 })
+  new THREE.MeshStandardMaterial({ color: 0xE6AF2E, metalness: 0.6, roughness: 0.3, emissive: 0xB38A24, emissiveIntensity: 0.3 })
 );
 spaceship.rotation.x = -Math.PI * 0.5;
 spaceship.scale.set(0.1, 0.1, 0.1);
@@ -82,9 +83,9 @@ scene.add(road);
 const lanes = [-1.5, 0, 1.5];
 const laneWidth = 5 / 3;
 const wallGeo = new THREE.BoxGeometry(laneWidth, 0.5, 0.3);
-const redMat = new THREE.MeshStandardMaterial({ color: 0xff5555, metalness: 0.4, roughness: 0.4, emissive: 0xff0000, emissiveIntensity: 0.4 });
-const blueMat = new THREE.MeshStandardMaterial({ color: 0x5555ff, metalness: 0.4, roughness: 0.4, emissive: 0x0000ff, emissiveIntensity: 0.4 });
-const whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.5, roughness: 0.3, emissive: 0xffffff, emissiveIntensity: 0.2 });
+const redMat = new THREE.MeshStandardMaterial({ color: 0xE6AF2E, metalness: 0.4, roughness: 0.4, emissive: 0xE6AF2E, emissiveIntensity: 0.4 });
+const blueMat = new THREE.MeshStandardMaterial({ color: 0x3D348B, metalness: 0.4, roughness: 0.4, emissive: 0x3D348B, emissiveIntensity: 0.4 });
+const whiteMat = new THREE.MeshStandardMaterial({ color: 0xE0E2DB, metalness: 0.5, roughness: 0.3, emissive: 0xE0E2DB, emissiveIntensity: 0.2 });
 const walls = [];
 let wallSpacing = 7;
 const wallCount = 5;
@@ -156,9 +157,9 @@ function resetGame() {
   startTime = performance.now();
   elapsed = 0;
   playerColor = 'red';
-  spaceship.material.color.set(0xff5555);
-  spaceship.material.emissive.set(0xff2222);
-  shipLight.color.set(0xff5555);
+  spaceship.material.color.set(0xE6AF2E);
+  spaceship.material.emissive.set(0xB38A24);
+  shipLight.color.set(0xE6AF2E);
   timerEl.textContent = '0.00';
   gameoverEl.style.display = 'none';
   spaceship.position.set(0, -0.03, 11.5);
@@ -205,14 +206,14 @@ window.addEventListener('keydown', (event) => {
 function toggleColor() {
   if (playerColor === 'red') {
     playerColor = 'blue';
-    spaceship.material.color.set(0x5555ff);
-    spaceship.material.emissive.set(0x2222ff);
-    shipLight.color.set(0x5555ff);
+    spaceship.material.color.set(0x3D348B);
+    spaceship.material.emissive.set(0x2A2460);
+    shipLight.color.set(0x3D348B);
   } else {
     playerColor = 'red';
-    spaceship.material.color.set(0xff5555);
-    spaceship.material.emissive.set(0xff2222);
-    shipLight.color.set(0xff5555);
+    spaceship.material.color.set(0xE6AF2E);
+    spaceship.material.emissive.set(0xB38A24);
+    shipLight.color.set(0xE6AF2E);
   }
 }
 
