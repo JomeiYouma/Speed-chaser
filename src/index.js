@@ -1,4 +1,11 @@
 import * as THREE from 'three';
+import { initializeApp } from 'firebase/app';
+import { getDatabase, ref, onValue, set, get } from 'firebase/database';
+import { firebaseConfig } from './firebase-config.js';
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
 
 // Utility: escape HTML to prevent XSS
 function escapeHtml(str) {
@@ -438,6 +445,20 @@ function renderHighscores() {
 }
 loadHighscores();
 renderHighscores();
+
+// Firebase realtime listener
+const highscoresRef = ref(db, 'highscores');
+onValue(highscoresRef, (snapshot) => {
+  const data = snapshot.val();
+  if (data) {
+    highscores = Object.values(data);
+    highscores.sort((a, b) => b.score - a.score);
+    highscores = highscores.slice(0, 5);
+    saveHighscores(); // Backup en local
+    renderHighscores();
+  }
+});
+
 let currentScore = 0;
 
 // Highscore logic
@@ -451,20 +472,31 @@ function updateHighscore() {
         if (!name) name = 'AAA';
         name = name.slice(0, 8).toUpperCase();
       }
-      const existing = highscores.find(s => s.name === name);
-      if (existing) {
-        // Mettre à jour le score si c'est un meilleur score
-        if (currentScore > existing.score) existing.score = currentScore;
-      } else {
-        highscores.push({ name, score: currentScore });
+
+      // 1) On essaie de sauvegarder sur Firebase
+      const playerRef = ref(db, 'highscores/' + name);
+      get(playerRef).then((snapshot) => {
+        const existing = snapshot.val();
+        if (!existing || currentScore > existing.score) {
+          set(playerRef, { name, score: currentScore }).catch(fallbackSave);
+        }
+      }).catch(fallbackSave);
+
+      // 2) Fallback local si Firebase échoue / bloqué
+      function fallbackSave() {
+        const existing = highscores.find(s => s.name === name);
+        if (existing) {
+          if (currentScore > existing.score) existing.score = currentScore;
+        } else {
+          highscores.push({ name, score: currentScore });
+        }
+        highscores.sort((a, b) => b.score - a.score);
+        highscores = highscores.slice(0, 5);
+        saveHighscores();
+        renderHighscores();
       }
-      highscores.sort((a, b) => b.score - a.score);
-      highscores = highscores.slice(0, 5);
-      saveHighscores();
-      renderHighscores();
     }, 500);
   }
-  renderHighscores();
 }
 
 function isHighscore(score) {
@@ -472,7 +504,14 @@ function isHighscore(score) {
   return highscores.some(s => score > s.score);
 }
 
+let lastFrameTime = performance.now();
 const tick = () => {
+  requestAnimationFrame(tick);
+
+  const now = performance.now();
+  if (now - lastFrameTime < 1000 / 60) return; // Cap at 60 FPS
+  lastFrameTime = now;
+
   if (alive && !paused) {
     elapsed = (performance.now() - startTime) / 1000;
     timerEl.textContent = elapsed.toFixed(2);
@@ -546,7 +585,6 @@ const tick = () => {
   }
 
   renderer.render(scene, camera);
-  requestAnimationFrame(tick);
 };
 
 tick();
