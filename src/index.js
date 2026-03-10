@@ -43,8 +43,8 @@ promptContainer.appendChild(promptInput);
 const promptBtn = document.createElement('button');
 promptBtn.textContent = 'SUBMIT';
 promptBtn.style.cssText = 'background:#E6AF2E;color:#222233;border:none;padding:12px 24px;font-family:monospace;font-size:20px;font-weight:bold;cursor:pointer;border-radius:6px;transition:0.2s;align-self:center;';
-promptBtn.onmouseover = () => promptBtn.style.background = '#ffd050';
-promptBtn.onmouseout = () => promptBtn.style.background = '#E6AF2E';
+promptBtn.onmouseover = () => promptBtn.style.background = '#555566';
+promptBtn.onmouseout = () => promptBtn.style.background = '#55556687';
 promptContainer.appendChild(promptBtn);
 document.body.appendChild(promptContainer);
 
