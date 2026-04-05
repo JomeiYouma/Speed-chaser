@@ -87,7 +87,7 @@ let alive = true;
 let paused = false;
 let startTime = performance.now();
 let elapsed = 0;
-const baseSpeed = 0.04;
+const baseSpeed = 0.2;
 const acceleration = 0.0025;
 let playerColor = 'red';
 let lives = 5;
@@ -575,7 +575,7 @@ const tick = () => {
 
     const wallSpeed = (baseSpeed + elapsed * acceleration) * dtMultiplier;
     const spacingElapsed = Math.min(elapsed, 115);
-    wallSpacing = (baseSpeed + spacingElapsed * acceleration) * 45 + 7;
+    wallSpacing = ((baseSpeed + spacingElapsed * acceleration) * 20) + 7;
 
     // Move walls toward the camera
     walls.forEach((row) => {
