@@ -1,6 +1,8 @@
 
 # Speed Chaser
 
+**Live demo:** https://jomeiyouma.github.io/Speed-chaser/
+
 ## English
 
 ### Game Description
